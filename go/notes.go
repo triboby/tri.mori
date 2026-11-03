@@ -1,7 +1,7 @@
 package main
 
 // POST /api/notes/inbox: saves a Markdown note into the Obsidian vault's inbox folder through Obsidian's own CLI
-// (`obsidian create`), so the running app indexes it and resolves name clashes. Requires NOTES_TOKEN.
+// (`obsidian create`), so the running app indexes it and resolves name clashes. NOTES_TOKEN, when set, is required.
 
 import (
 	"context"
@@ -147,10 +147,10 @@ func (s *server) apiNotesInbox(w http.ResponseWriter, r *http.Request) error {
 	if r.Method != "POST" {
 		return send(w, 405, stringify(newObj("error", "method not allowed")), "application/json; charset=utf-8", map[string]string{"Allow": "POST"})
 	}
-	if nc.token == "" || nc.vault == "" {
-		return sendJSON(w, 503, newObj("error", "notes inbox is not configured (NOTES_TOKEN, OBSIDIAN_VAULT)"))
+	if nc.vault == "" {
+		return sendJSON(w, 503, newObj("error", "notes inbox is not configured (OBSIDIAN_VAULT)"))
 	}
-	if subtle.ConstantTimeCompare([]byte(bearerToken(r)), []byte(nc.token)) != 1 {
+	if nc.token != "" && subtle.ConstantTimeCompare([]byte(bearerToken(r)), []byte(nc.token)) != 1 {
 		return sendJSON(w, 401, newObj("error", "unauthorized"))
 	}
 	n, err := readInboxNote(r)
