@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 func TestNoteFileName(t *testing.T) {
@@ -30,5 +31,21 @@ func TestNoteMarkdown(t *testing.T) {
 	want := "---\ntitle: \"A \\\"quoted\\\" title\"\ndate: 2026-11-03\nsource: \"https://x.y/a: b\"\ntags: [\"go\", \"读书\"]\n---\n\nbody\n"
 	if got != want {
 		t.Errorf("noteMarkdown =\n%s\nwant\n%s", got, want)
+	}
+}
+
+func TestSplitNoteContent(t *testing.T) {
+	long := strings.Repeat("森林 line\n", 900) + strings.Repeat("长", 3000) + `a\nb` + strings.Repeat("x", 5000)
+	parts := splitNoteContent(long, 4000)
+	if strings.Join(parts, "") != long {
+		t.Fatal("parts do not join back to the input")
+	}
+	for i, p := range parts {
+		if len(p) > 4000 || !utf8.ValidString(p) || (i < len(parts)-1 && strings.HasSuffix(p, `\`)) {
+			t.Errorf("bad part %d: %d bytes, ends %q", i, len(p), p[len(p)-3:])
+		}
+	}
+	if got := splitNoteContent("short", 4000); len(got) != 1 {
+		t.Errorf("short content split into %d parts", len(got))
 	}
 }

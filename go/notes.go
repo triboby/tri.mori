@@ -169,20 +169,56 @@ func (s *server) apiNotesInbox(w http.ResponseWriter, r *http.Request) error {
 
 	notesMu.Lock()
 	defer notesMu.Unlock()
-	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, nc.bin, "vault="+nc.vault, "create", "path="+rel, "content="+noteMarkdown(n, now))
-	out, err := cmd.CombinedOutput()
-	text := strings.TrimSpace(string(out))
+	chunks := splitNoteContent(noteMarkdown(n, now), noteChunkBytes)
+	text, err := obsidianCLI(ctx, nc, "create", "path="+rel, "content="+chunks[0])
 	m := reCreated.FindStringSubmatch(text)
 	if err != nil || m == nil {
-		if text == "" && err != nil {
-			text = err.Error()
-		}
 		log.Printf("%s notes inbox failed: %s", nowISO(), text)
 		return sendJSON(w, 502, newObj("error", "obsidian create failed", "detail", text))
 	}
 	path := strings.TrimSpace(m[1])
+	for i, c := range chunks[1:] {
+		text, err := obsidianCLI(ctx, nc, "append", "path="+path, "inline", "content="+c)
+		if err != nil || !strings.HasPrefix(text, "Appended to:") {
+			log.Printf("%s notes inbox %s incomplete at part %d/%d: %s", nowISO(), path, i+2, len(chunks), text)
+			return sendJSON(w, 502, newObj("error", "obsidian append failed; note is incomplete", "path", path, "detail", text))
+		}
+	}
 	log.Printf("%s notes inbox %s", nowISO(), path)
 	return sendJSON(w, 201, newObj("ok", true, "path", path))
+}
+
+// noteChunkBytes keeps each CLI call well below the ~8KB size above which `obsidian` still writes but prints nothing.
+const noteChunkBytes = 4000
+
+func obsidianCLI(ctx context.Context, nc notesConfig, args ...string) (string, error) {
+	out, err := exec.CommandContext(ctx, nc.bin, append([]string{"vault=" + nc.vault}, args...)...).CombinedOutput()
+	text := strings.TrimSpace(string(out))
+	if text == "" && err != nil {
+		text = err.Error()
+	}
+	return text, err
+}
+
+// splitNoteContent cuts s into pieces of at most max bytes, preferring line ends and never splitting a rune
+// or separating a backslash from the character after it (the CLI expands \n and \t).
+func splitNoteContent(s string, max int) []string {
+	var out []string
+	for len(s) > max {
+		cut := strings.LastIndexByte(s[:max], '\n') + 1
+		if cut < max/2 {
+			cut = max
+			for cut > 0 && !utf8.RuneStart(s[cut]) {
+				cut--
+			}
+		}
+		for cut > 1 && s[cut-1] == '\\' {
+			cut--
+		}
+		out = append(out, s[:cut])
+		s = s[cut:]
+	}
+	return append(out, s)
 }
