@@ -38,3 +38,6 @@ web/public/favicon.ico
 web/public/apple-touch-icon.png
 web/public/icon-*.png
 web/public/site.webmanifest
+
+# Default Astro output (unused: the build writes to go/webdist)
+web/dist/
