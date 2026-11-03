@@ -10,9 +10,9 @@ func TestNoteFileName(t *testing.T) {
 	now := time.Date(2026, 11, 3, 9, 5, 7, 0, time.Local)
 	cases := map[string]string{
 		"读书笔记: Go / 并发?": "20261103_读书笔记 Go 并发.md",
-		"  #tag [[x]]  ":    "20261103_tag x.md",
-		"":                  "20261103_090507.md",
-		"../..":             "20261103_090507.md",
+		"  #tag [[x]]  ": "20261103_tag x.md",
+		"":               "20261103_090507.md",
+		"../..":          "20261103_090507.md",
 	}
 	for in, want := range cases {
 		if got := noteFileName(in, now); got != want {
