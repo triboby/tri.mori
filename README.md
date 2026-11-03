@@ -76,6 +76,36 @@ NAS 布局（`organize-books.mjs` 整理，和 `store/movie` 一样平铺）：`
   数据在 `data/kosync.sqlite`。文档匹配方式保持默认的「二进制」（partial MD5），书架页据此显示阅读进度。
   `KOSYNC_REGISTRATION=off` 可关闭新用户注册。
 
+## 笔记收件箱（`POST /api/notes/inbox`）
+
+把一条笔记写进 Obsidian vault 的收件箱目录。写入走 Obsidian 自带的 CLI（`obsidian create`，需在
+设置 → 通用 里开启命令行，且 Obsidian 正在运行），由 Obsidian 负责建索引和重名处理（同名会自动变成 `… 1.md`）。
+
+`.env` 里配置（不设 `NOTES_TOKEN` 或 `OBSIDIAN_VAULT` 时接口返回 503）：
+
+| 变量 | 说明 |
+| --- | --- |
+| `NOTES_TOKEN` | 访问令牌，`openssl rand -hex 24` 生成 |
+| `OBSIDIAN_VAULT` | vault 名称（Obsidian 里显示的名字） |
+| `OBSIDIAN_INBOX` | 收件箱目录，默认 `00-Inbox` |
+| `OBSIDIAN_BIN` | CLI 路径，默认 `/Applications/Obsidian.app/Contents/MacOS/obsidian` |
+
+令牌放在 `Authorization: Bearer <token>` 或 `X-Mori-Token` 头里。文件名为 `YYYYMMDD_<标题>.md`（无标题时用时间），
+正文前加 `title` / `date` / `source` / `tags` frontmatter。
+
+```sh
+curl -X POST http://localhost:8687/api/notes/inbox -H "Authorization: Bearer $NOTES_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"标题","content":"正文 Markdown","source":"https://…","tags":["read"]}'
+
+# 也可以直接发正文，标题等放在查询参数里
+curl -X POST "http://localhost:8687/api/notes/inbox?title=标题&tags=a,b" -H "X-Mori-Token: $NOTES_TOKEN" \
+  -H 'Content-Type: text/markdown' --data-binary @note.md
+```
+
+成功返回 `201 {"ok":true,"path":"00-Inbox/…"}`；令牌错误 401，正文为空 400，CLI 失败 502。
+注意：Obsidian CLI 会把正文里字面的 `\n`、`\t` 转成换行和制表符。
+
 ## 文件
 
 | 路径 | 作用 |

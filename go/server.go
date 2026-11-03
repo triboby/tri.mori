@@ -33,6 +33,7 @@ type server struct {
 	movies *jsonList
 	books  *jsonList
 	kdb    *kosyncDB
+	notes  notesConfig
 	qmdMu  sync.Mutex
 }
 
@@ -182,6 +183,8 @@ func (s *server) route(w http.ResponseWriter, r *http.Request, u *reqURL) error 
 			list = []any{}
 		}
 		return sendJSON(w, 200, list)
+	case p == "/api/notes/inbox":
+		return s.apiNotesInbox(w, r)
 	case p == "/api/books":
 		return s.apiBooks(w)
 	case p == "/api/search":
@@ -322,7 +325,7 @@ func serve() {
 	if err != nil {
 		log.Fatalf("kosync db: %v", err)
 	}
-	s := &server{cfg: cfg, movies: newJSONList(filepath.Join(root, "data/movies.json")), books: newJSONList(filepath.Join(root, "data/books.json")), kdb: kdb}
+	s := &server{cfg: cfg, movies: newJSONList(filepath.Join(root, "data/movies.json")), books: newJSONList(filepath.Join(root, "data/books.json")), kdb: kdb, notes: loadNotesConfig(root)}
 	if _, err := os.Stat(filepath.Join(home, ".cache/qmd", cfg.qmdIndex+".sqlite")); err != nil {
 		fmt.Fprintf(os.Stderr, "qmd index not found at %s; search will fail until it is built\n", filepath.Join(home, ".cache/qmd", cfg.qmdIndex+".sqlite"))
 	}
