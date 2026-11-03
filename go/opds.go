@@ -47,7 +47,7 @@ func feed(id, title, self, kind string, entries []string, updated string) string
   <id>` + xmlEsc(id) + `</id>
   <title>` + xmlEsc(title) + `</title>
   <updated>` + updated + `</updated>
-  <author><name>家庭书架</name></author>
+  <author><name>Mori 森记</name></author>
   <link rel="self" href="` + xmlEsc(self) + `" type="` + kind + `"/>
   <link rel="start" href="/opds" type="` + navType + `"/>
   <link rel="search" href="/opds/search.xml" type="application/opensearchdescription+xml"/>
@@ -248,11 +248,11 @@ func (s *server) opds(w http.ResponseWriter, r *http.Request, u *reqURL) error {
 		for _, c := range cats {
 			entries = append(entries, navEntry(c.key, "/opds/cat/"+encodeURIComponent(c.key), strconv.Itoa(c.n)+" 本", now, navType))
 		}
-		return atom(feed("urn:shelf:opds", "家庭书架", "/opds", navType, entries, now), navType)
+		return atom(feed("urn:shelf:opds", "Mori 森记", "/opds", navType, entries, now), navType)
 	case "/opds/search.xml":
 		return send(w, 200, []byte(`<?xml version="1.0" encoding="UTF-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
-  <ShortName>家庭书架</ShortName><Description>搜索书名、作者、标签、ISBN</Description><InputEncoding>UTF-8</InputEncoding><OutputEncoding>UTF-8</OutputEncoding>
+  <ShortName>Mori 森记</ShortName><Description>搜索书名、作者、标签、ISBN</Description><InputEncoding>UTF-8</InputEncoding><OutputEncoding>UTF-8</OutputEncoding>
   <Url type="`+acqType+`" template="/opds/search?q={searchTerms}"/>
 </OpenSearchDescription>`), "application/opensearchdescription+xml; charset=utf-8", nil)
 	case "/opds/new":

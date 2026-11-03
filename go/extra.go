@@ -25,12 +25,19 @@ var webPages = map[string]string{
 }
 
 // serveWeb serves the embedded Astro build; hashed assets under /_astro/ are cached for a year.
+// publicFiles are the web/public assets served from the site root (brand marks, favicons, PWA manifest).
+var publicFiles = map[string]bool{
+	"/favicon.svg": true, "/favicon.ico": true, "/apple-touch-icon.png": true, "/site.webmanifest": true,
+	"/icon-192.png": true, "/icon-512.png": true, "/icon-maskable-512.png": true,
+	"/mori-mark.svg": true, "/mori-mark-reverse.svg": true, "/mori-favicon.svg": true,
+}
+
 func serveWeb(w http.ResponseWriter, p string) (bool, error) {
 	name, ok := webPages[p]
 	cache := "no-cache"
 	if !ok {
 		clean := path.Clean(p)
-		if clean != p || strings.Contains(p, "..") || !(strings.HasPrefix(p, "/_astro/") || p == "/favicon.svg") {
+		if clean != p || strings.Contains(p, "..") || !(strings.HasPrefix(p, "/_astro/") || publicFiles[p]) {
 			return false, nil
 		}
 		name = strings.TrimPrefix(p, "/")

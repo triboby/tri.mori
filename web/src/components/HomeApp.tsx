@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getBooks, getMovies, search, type Book, type Movie, type SearchResult } from '../lib/api';
 import { fmtDate, isKids, readPct, readestFile, readestHref, save, score, seededShuffle, store, today } from '../lib/util';
-import { BOOK_STRIP, BookCard, BookCover, MovieCard, Pending, STRIP, Section } from './cards';
+import { BOOK_STRIP, BookCard, BookCover, Empty, MovieCard, Pending, STRIP, Section } from './cards';
 import { HomeSkel, PosterGrid, SectionSkel, Skeleton } from './Skeleton';
 
 type Scope = '全部' | '电影' | '少儿';
@@ -73,7 +73,7 @@ function Overview({ movies, books, lastVisit }: { movies: Movie[]; books: Book[]
             );
           })}
         </div>
-      ) : <p className="m-0 text-sm text-muted">还没有阅读进度。KOReader 或 Readest 设好同步服务器（<code className="font-mono text-xs">/kosync</code>）后，读到哪里会出现在这里。</p>}
+      ) : <Empty>还没有阅读进度。KOReader 或 Readest 设好同步服务器（<code className="font-mono text-xs">/kosync</code>）后，读到哪里会出现在这里。</Empty>}
     </Section>
 
     <Section title="今晚给你" note="评分 7.5 以上、片长两个半小时内，每天换一批（按观看记录挑选待接入）" action={<a href="/pick">换个条件挑</a>}>

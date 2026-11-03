@@ -6,7 +6,7 @@ import { Pending } from './cards';
 import { HealthSkel } from './Skeleton';
 
 type Item = { kind: string; cat: string; tone: 'red' | 'amber' | 'blue'; text: string; href?: string; action?: string; movie?: Movie };
-const TONE = { red: 'bg-warn-bg text-warn', amber: 'bg-accent-bg text-accent', blue: 'bg-info-bg text-info' };
+const TONE = { red: 'bg-warn-bg text-warn', amber: 'bg-[color-mix(in_srgb,var(--color-seed)_22%,transparent)] text-seed-ink', blue: 'bg-info-bg text-info' };
 const FILTERS = ['全部', '字幕', '画质', '重复', '元数据', '未匹配'];
 const HOST = typeof location !== 'undefined' ? location.hostname : 'localhost';
 

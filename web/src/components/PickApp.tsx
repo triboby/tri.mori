@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getMovies, type Movie } from '../lib/api';
 import { isKids, score, tech } from '../lib/util';
-import { MovieCard } from './cards';
+import { Empty, MovieCard } from './cards';
 import { PickSkel } from './Skeleton';
 
 type Opt = { value: string; label: string; test: (m: Movie) => boolean };
@@ -110,7 +110,7 @@ export default function PickApp() {
   return (
     <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pb-10 pt-5 md:px-8 md:pt-6">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="m-0 font-serif text-[24px] font-black md:text-[28px]">选片</h1>
+        <h1 className="m-0 text-[24px] font-semibold tracking-tight md:text-[28px]">选片</h1>
         <span className="font-mono text-[13px] text-muted">{nSel ? `命中 ${list.length} / ${movies.length} 部` : `全部 ${movies.length} 部`}</span>
         <button type="button" className="btn md:hidden" aria-expanded={open} aria-controls="pick-filters" onClick={() => setOpen(o => !o)}>
           筛选{nSel > 0 && <span className="rounded bg-accent px-1.5 font-mono text-[11px] text-accent-ink">{nSel}</span>}
@@ -140,7 +140,7 @@ export default function PickApp() {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-x-3 gap-y-4 md:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:gap-x-4">
           {list.slice(0, shown).map(m => <MovieCard key={m.id} m={m} />)}
         </div>
-      ) : <p className="text-muted">没有符合这些条件的片子。<button type="button" className="btn ml-2" onClick={clear}>清空条件</button></p>}
+      ) : <Empty>没有符合这些条件的片子。<button type="button" className="btn ml-auto" onClick={clear}>清空条件</button></Empty>}
       {list.length > shown && <div ref={sentinel} className="h-10" />}
     </main>
   );

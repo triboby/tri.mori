@@ -100,13 +100,13 @@ function BookDrawer({ b, onClose }: { b: Book; onClose: () => void }) {
   const row = (k: string, v?: string | number | null) => (v ? <><dt className="text-muted">{k}</dt><dd className="m-0">{v}</dd></> : null);
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-[#1f2a22]/40 backdrop-blur-[2px]" onClick={onClose} />
       <aside role="dialog" aria-modal="true" aria-label={b.title} className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[520px] flex-col gap-4 overflow-y-auto border-l border-line bg-ink p-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <button type="button" className="btn self-end" onClick={onClose} aria-label="关闭">关闭</button>
         <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-4">
           <BookCover b={b} />
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="m-0 font-serif text-[22px] font-black leading-tight">{b.title}</h2>
+            <h2 className="m-0 text-[22px] font-semibold leading-tight tracking-tight">{b.title}</h2>
             {[b.subtitle, b.origTitle].filter(Boolean).map(x => <div key={x} className="text-sm text-muted">{x}</div>)}
             <div className="text-sm">{b.authors.join('、')}{b.translators.length ? <span className="text-muted"> · 译 {b.translators.join('、')}</span> : null}</div>
             {b.rating ? <a className="text-sm" href={b.doubanId ? `https://book.douban.com/subject/${b.doubanId}/` : undefined} target="_blank" rel="noopener">豆瓣 {b.rating.toFixed(1)}</a> : null}

@@ -41,7 +41,8 @@ type reqURL struct {
 	params           []param
 }
 
-var mimeTypes = map[string]string{".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".json": "application/json"}
+var mimeTypes = map[string]string{".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".json": "application/json",
+	".png": "image/png", ".ico": "image/x-icon", ".webmanifest": "application/manifest+json", ".woff2": "font/woff2", ".woff": "font/woff"}
 
 func send(w http.ResponseWriter, code int, body []byte, typ string, extra map[string]string) error {
 	h := w.Header()

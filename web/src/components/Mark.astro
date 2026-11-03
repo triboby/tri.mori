@@ -1,0 +1,21 @@
+---
+// The Mori sprout mark, inlined so it follows the theme (reverse colours on the dark theme).
+interface Props { class?: string }
+const { class: cls = '' } = Astro.props;
+---
+<svg class={`mori-mark ${cls}`} viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <path d="M30.323 34.37V55.51" class="stem" stroke-width="3.43" stroke-linecap="round" />
+  <path d="M30.323 32.655A17.632 17.632 0 0 1 11.303 18.836A17.632 17.632 0 0 1 30.323 32.655Z" class="leaf-s" />
+  <path d="M30.323 34.775A28.53 28.53 0 0 1 52.683 4A28.53 28.53 0 0 1 30.323 34.775Z" class="leaf-l" />
+  <circle cx="30.323" cy="55.51" r="4.49" class="seed" />
+</svg>
+<style is:global>
+  .mori-mark .stem { stroke: #2f4a3a; }
+  .mori-mark .leaf-s { fill: #8fb096; }
+  .mori-mark .leaf-l { fill: #4e7a5a; }
+  .mori-mark .seed { fill: #c9a45c; }
+  [data-theme="dark"] .mori-mark .stem { stroke: #f1f5ef; }
+  [data-theme="dark"] .mori-mark .leaf-s { fill: #6f9a79; }
+  [data-theme="dark"] .mori-mark .leaf-l { fill: #a9cdb0; }
+  [data-theme="dark"] .mori-mark .seed { fill: #e2c27e; }
+</style>

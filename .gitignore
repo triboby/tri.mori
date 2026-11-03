@@ -32,3 +32,9 @@ book-recategorize-plan.md
 *.plist
 
 .DS_Store
+
+# Icons rendered from web/public/mori-favicon.svg by web/scripts/icons.mjs during the web build
+web/public/favicon.ico
+web/public/apple-touch-icon.png
+web/public/icon-*.png
+web/public/site.webmanifest

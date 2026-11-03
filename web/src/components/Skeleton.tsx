@@ -62,7 +62,7 @@ export const PickSkel = ({ error }: { error?: string }) => (
 export const DetailSkel = ({ error }: { error?: string }) => (
   <main>
     <Skeleton error={error}>
-      <section className="bg-[radial-gradient(90%_140%_at_75%_0%,#1d3348_0%,#0b0d12_70%)]">
+      <section className="hero">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-end gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8">
           <Bone className="aspect-[2/3] w-36 flex-none rounded-lg md:w-[220px]" />
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3"><Bone className="h-9 w-2/3 md:h-11" /><Bone className="h-4 w-1/2" /><Lines n={4} className="max-w-[62ch]" /><Chips n={5} /></div>

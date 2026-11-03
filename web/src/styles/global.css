@@ -1,73 +1,159 @@
 @import "tailwindcss";
+@import "@fontsource/outfit/latin-500.css";
 
-/* Design v3 palette and type (system fonts only; nothing is fetched from the internet). */
+/* Mori palette: light first, a Forest-based dark theme following the system unless data-theme pins one.
+   Components use the semantic names below; the raw values live in the --m-* variables per theme. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+:root {
+  --m-ink: #f6f8f4;
+  --m-panel: #ffffff;
+  --m-line: #dde6db;
+  --m-rule: #e3eae1;
+  --m-chip: #ffffff;
+  --m-raise: #eef3ec;
+  --m-edge: #e7efe6;
+  --m-edge-2: #d3ddd1;
+  --m-edge-3: #c3d0c1;
+  --m-nav: #ffffff;
+  --m-text: #1f2a22;
+  --m-soft: #3e4a42;
+  --m-muted: #5a695e;
+  --m-accent: #4e7a5a;
+  --m-accent-hi: #2f4a3a;
+  --m-accent-ink: #ffffff;
+  --m-accent-bg: #e7efe6;
+  --m-seed: #c9a45c;
+  --m-seed-ink: #7a5c22;
+  --m-kids: #2f7a5c;
+  --m-cyan: #2b6f7a;
+  --m-cyan-bg: #e1f0f1;
+  --m-ok: #2f6f3d;
+  --m-ok-bg: #e2f0df;
+  --m-warn: #a2442c;
+  --m-warn-bg: #f9e8e2;
+  --m-info: #36598c;
+  --m-info-bg: #e5edf8;
+  --m-bar: #a9b8ab;
+  --m-hero: radial-gradient(90% 140% at 75% 0%, #dfeadc 0%, #f6f8f4 70%);
+  color-scheme: light;
+}
+
+/* Set by the inline script in Shell.astro: the saved choice, or the system preference when none is saved. */
+:root[data-theme="dark"] {
+  --m-ink: #141c17;
+  --m-panel: #1c2620;
+  --m-line: #2a372e;
+  --m-rule: #222d26;
+  --m-chip: #1a231d;
+  --m-raise: #222d26;
+  --m-edge: #2a372e;
+  --m-edge-2: #34443a;
+  --m-edge-3: #415244;
+  --m-nav: #18211b;
+  --m-text: #e6ede5;
+  --m-soft: #c9d3c8;
+  --m-muted: #9cab9f;
+  --m-accent: #8fb096;
+  --m-accent-hi: #a9cdb0;
+  --m-accent-ink: #141c17;
+  --m-accent-bg: #233529;
+  --m-seed: #e2c27e;
+  --m-seed-ink: #e2c27e;
+  --m-kids: #7cc7a8;
+  --m-cyan: #7fc6cf;
+  --m-cyan-bg: #17292b;
+  --m-ok: #9bd08a;
+  --m-ok-bg: #1f3220;
+  --m-warn: #f0a48f;
+  --m-warn-bg: #3a221b;
+  --m-info: #a3c0ec;
+  --m-info-bg: #1c2433;
+  --m-bar: #4d5f52;
+  --m-hero: radial-gradient(90% 140% at 75% 0%, #23382b 0%, #141c17 70%);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-ink: var(--m-ink);
+  --color-panel: var(--m-panel);
+  --color-line: var(--m-line);
+  --color-rule: var(--m-rule);
+  --color-chip: var(--m-chip);
+  --color-raise: var(--m-raise);
+  --color-edge: var(--m-edge);
+  --color-edge-2: var(--m-edge-2);
+  --color-edge-3: var(--m-edge-3);
+  --color-nav: var(--m-nav);
+  --color-text: var(--m-text);
+  --color-soft: var(--m-soft);
+  --color-muted: var(--m-muted);
+  --color-accent: var(--m-accent);
+  --color-accent-hi: var(--m-accent-hi);
+  --color-accent-ink: var(--m-accent-ink);
+  --color-accent-bg: var(--m-accent-bg);
+  --color-seed: var(--m-seed);
+  --color-seed-ink: var(--m-seed-ink);
+  --color-kids: var(--m-kids);
+  --color-cyan: var(--m-cyan);
+  --color-cyan-bg: var(--m-cyan-bg);
+  --color-ok: var(--m-ok);
+  --color-ok-bg: var(--m-ok-bg);
+  --color-warn: var(--m-warn);
+  --color-warn-bg: var(--m-warn-bg);
+  --color-info: var(--m-info);
+  --color-info-bg: var(--m-info-bg);
+  --color-bar: var(--m-bar);
+}
+
 @theme {
-  --color-ink: #0b0d12;
-  --color-panel: #11151c;
-  --color-line: #1f2430;
-  --color-rule: #1c212b;
-  --color-chip: #151922;
-  --color-raise: #1b2029;
-  --color-edge: #262c38;
-  --color-edge-2: #333a47;
-  --color-edge-3: #3a4150;
-  --color-nav: #0f1218;
-  --color-text: #e9e6df;
-  --color-soft: #d6d1c6;
-  --color-muted: #a3aab5;
-  --color-accent: #f0b44c;
-  --color-accent-hi: #ffd27f;
-  --color-accent-ink: #1a1405;
-  --color-accent-bg: #2b2615;
-  --color-kids: #7cc7a8;
-  --color-cyan: #7fd0dc;
-  --color-cyan-bg: #15272b;
-  --color-ok: #8fcf7a;
-  --color-ok-bg: #1d2e19;
-  --color-warn: #f2a08c;
-  --color-warn-bg: #3a1e18;
-  --color-info: #9fc0f0;
-  --color-info-bg: #1b2230;
-  --color-bar: #5a6478;
+  --color-forest: #2f4a3a;
+  --color-moss: #4e7a5a;
+  --color-sage: #8fb096;
+  --color-mist: #e7efe6;
+  --color-seed-raw: #c9a45c;
 
-  --font-sans: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", system-ui, sans-serif;
-  --font-serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-sans: "PingFang SC", "Noto Sans SC", "Source Han Sans SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --font-brand: "Outfit", "PingFang SC", system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", Menlo, ui-monospace, monospace;
 }
 
 @layer base {
-  html { color-scheme: dark; -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; }
   body { @apply bg-ink text-text font-sans text-[15px] leading-relaxed antialiased; }
   a { @apply text-accent hover:text-accent-hi; }
   :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-  ::selection { background: var(--color-accent); color: var(--color-accent-ink); }
+  ::selection { background: var(--color-sage); color: #1f2a22; }
 }
 
 @utility btn {
-  @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-edge-3 bg-raise px-3.5 text-sm text-text no-underline hover:border-accent hover:text-text disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-edge-3;
+  @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-edge-2 bg-panel px-3.5 text-sm text-text no-underline transition-colors hover:border-accent hover:text-text disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-edge-2;
 }
 @utility btn-pri {
-  @apply btn border-accent bg-accent font-bold text-accent-ink hover:bg-accent-hi hover:text-accent-ink;
+  @apply btn border-accent bg-accent font-medium text-accent-ink hover:border-accent-hi hover:bg-accent-hi hover:text-accent-ink;
 }
 @utility chip {
-  @apply min-h-11 cursor-pointer rounded-[10px] border border-edge-2 bg-chip px-4 text-[15px] text-text;
-  &[aria-pressed="true"] { @apply border-accent bg-accent-bg text-accent; }
+  @apply min-h-11 cursor-pointer rounded-xl border border-edge-2 bg-chip px-4 text-[15px] text-soft transition-colors hover:border-edge-3;
+  &[aria-pressed="true"] { @apply border-accent bg-accent-bg text-accent-hi; }
 }
 @utility card-panel {
-  @apply rounded-xl border border-line bg-panel;
+  @apply rounded-2xl border border-line bg-panel;
 }
 @utility strip {
-  @apply grid grid-flow-col gap-4 overflow-x-auto pb-2;
+  @apply grid grid-flow-col gap-4 overflow-x-auto pt-1 pb-2;
   scrollbar-width: thin;
 }
 @utility pending {
-  @apply rounded border border-dashed border-edge-3 px-1.5 font-mono text-[11px] text-muted;
+  @apply rounded-md border border-dashed border-edge-3 px-1.5 font-mono text-[11px] text-muted;
+}
+@utility hero {
+  background: var(--m-hero);
 }
 
 @utility skel {
-  @apply rounded-md;
-  background: linear-gradient(90deg, var(--color-raise) 25%, var(--color-edge) 50%, var(--color-raise) 75%) 0 0 / 300% 100%;
+  @apply rounded-xl;
+  background: linear-gradient(90deg, var(--color-edge) 25%, var(--color-raise) 50%, var(--color-edge) 75%) 0 0 / 300% 100%;
   animation: skel-shimmer 1.6s ease-in-out infinite;
-  @media (prefers-reduced-motion: reduce) { animation: none; background: var(--color-raise); }
+  @media (prefers-reduced-motion: reduce) { animation: none; background: var(--color-edge); }
 }
 @keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

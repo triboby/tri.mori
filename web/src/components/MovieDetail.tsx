@@ -21,7 +21,7 @@ export default function MovieDetail() {
   const id = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('id')) : 0;
   useEffect(() => { getMovies().then(setAll).catch(e => setError(String(e.message || e))); }, []);
   const m = all?.find(x => x.id === id);
-  useEffect(() => { if (m) document.title = `${m.title} · 森记 Mori`; }, [m]);
+  useEffect(() => { if (m) document.title = `${m.title} · Mori`; }, [m]);
   const sims = useMemo(() => (m && all ? similar(m, all) : []), [m, all]);
   if (!all) return <DetailSkel error={error} />;
   if (!m) return <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8"><p>片库里没有这部电影。<a href="/">回首页</a></p></main>;
@@ -31,15 +31,15 @@ export default function MovieDetail() {
 
   return (
     <main>
-      <section className="bg-[radial-gradient(90%_140%_at_75%_0%,#1d3348_0%,#0b0d12_70%)]">
+      <section className="hero">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-end gap-6 px-4 py-6 md:gap-8 md:px-8 md:py-8">
           <Poster m={m} big className="w-36 flex-none md:w-[220px]" />
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-2.5">
-            <h1 className="m-0 font-serif text-[28px] font-black leading-tight md:text-[38px]">{m.title}
+            <h1 className="m-0 text-[28px] font-semibold leading-tight tracking-tight md:text-[36px]">{m.title}
               <span className="ml-2 font-sans text-base font-normal text-muted md:text-lg">{[orig[0], m.year].filter(Boolean).join(' · ')}</span></h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted">
-              {r && <span><strong className="font-mono text-accent">{r.value}</strong> {r.href ? <a href={r.href} target="_blank" rel="noopener" className="text-muted">{r.label}</a> : r.label}</span>}
-              {m.imdbRating && m.rating && <span><strong className="font-mono text-accent">{m.rating.toFixed(1)}</strong> <a className="text-muted" href={`https://www.themoviedb.org/movie/${m.id}?language=zh-CN`} target="_blank" rel="noopener">TMDB</a></span>}
+              {r && <span><strong className="font-mono text-seed-ink">{r.value}</strong> {r.href ? <a href={r.href} target="_blank" rel="noopener" className="text-muted">{r.label}</a> : r.label}</span>}
+              {m.imdbRating && m.rating && <span><strong className="font-mono text-seed-ink">{m.rating.toFixed(1)}</strong> <a className="text-muted" href={`https://www.themoviedb.org/movie/${m.id}?language=zh-CN`} target="_blank" rel="noopener">TMDB</a></span>}
               {m.runtime && <span>{m.runtime} 分钟</span>}
               {m.genres.length > 0 && <span>{m.genres.join(' · ')}</span>}
               {m.directors.length > 0 && <span>导演 {m.directors.map(shortName).join('、')}</span>}
