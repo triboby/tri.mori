@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>片库</title>
+<link rel="stylesheet" href="/shelf.css">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">片库<small id="count"></small></div>
+    <nav class="kinds" aria-label="类别"><a href="/all">全部</a><a href="/" aria-current="page">电影</a><a href="/books">书</a></nav>
+    <form class="search" id="form" role="search" autocomplete="off">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" enterkeyhint="search" placeholder="搜片名、导演、演员，或描述剧情…" aria-label="搜索">
+      <button type="button" class="clear" id="clear" aria-label="清除">✕</button>
+    </form>
+  </div>
+</header>
+<main>
+  <div class="status" id="status"></div>
+  <nav class="tabs" id="tabs" aria-label="分组"></nav>
+  <div id="view"></div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside class="detail" id="detail" aria-hidden="true" role="dialog" aria-modal="true"></aside>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let MOVIES = [], BY_ID = new Map(), tab = '推荐', sortBy = 'default';
+try { sortBy = localStorage.getItem('sortBy') || 'default'; } catch {}
+
+const score = m => m.imdbRating ?? m.rating ?? 0;
+const sorted = list => sortBy === 'rating' ? [...list].sort((a, b) => score(b) - score(a) || (b.imdbVotes || 0) - (a.imdbVotes || 0)) : list;
+function rateBadge(m, link = false) {
+  const [cls, label, v, href] = m.imdbRating ? ['rate', 'IMDb', m.imdbRating, m.imdbId && `https://www.imdb.com/title/${m.imdbId}/`]
+    : m.rating ? ['rate tmdb', 'TMDB', m.rating, `https://www.themoviedb.org/movie/${m.id}`] : [];
+  if (!cls) return '';
+  const text = `${label} ${v.toFixed(1)}`;
+  return link && href ? `<a class="${cls}" href="${href}" target="_blank" rel="noopener">${text}</a>` : `<span class="${cls}">${text}</span>`;
+}
+const nasFileURL = v => 'file://' + `${v.dir || '/Volumes/store/movie'}/${v.path}`.split('/').map(encodeURIComponent).join('/');
+const iinaURL = v => 'iina://weblink?url=' + encodeURIComponent(nasFileURL(v));
+const isKids = m => m.libraries?.includes('kids');
+const fmtSize = b => b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : Math.round(b / 1e6) + ' MB';
+
+const GROUPS = {
+  '推荐': () => [
+    ['最近入库', [...MOVIES].sort((a, b) => b.added - a.added).slice(0, 24)],
+    ['少儿', MOVIES.filter(isKids)],
+    ['高分', MOVIES.filter(m => score(m) >= 8).sort((a, b) => score(b) - score(a))],
+    ['华语', MOVIES.filter(m => m.region === '华语')],
+    ['日韩', MOVIES.filter(m => m.region === '日韩')],
+    ['欧美', MOVIES.filter(m => m.region === '欧美')],
+  ],
+  '按类型': () => {
+    const g = new Map();
+    for (const m of MOVIES) for (const x of m.genres) (g.get(x) || g.set(x, []).get(x)).push(m);
+    return [...g].filter(([, l]) => l.length >= 3).sort((a, b) => b[1].length - a[1].length);
+  },
+  '按年代': () => {
+    const g = new Map();
+    for (const m of MOVIES) { const d = m.year ? `${Math.floor(m.year / 10) * 10} 年代` : '年份未知'; (g.get(d) || g.set(d, []).get(d)).push(m); }
+    return [...g].sort((a, b) => b[0].localeCompare(a[0]));
+  },
+  '华语': () => [['华语', MOVIES.filter(m => m.region === '华语')]],
+  '日韩': () => [['日韩', MOVIES.filter(m => m.region === '日韩')]],
+  '欧美': () => [['欧美', MOVIES.filter(m => m.region === '欧美')]],
+  '少儿': () => [['少儿', MOVIES.filter(isKids)]],
+};
+
+function card(m) {
+  const sub = [m.year, m.directors[0]?.replace(/（.*）/, '')].filter(Boolean).join(' · ');
+  return `<button class="card" data-id="${m.id}" title="${esc(m.title)}">
+    <div class="poster">${m.poster ? `<img loading="lazy" src="/posters/${m.poster}" alt="">` : `<div class="noimg">${esc(m.title)}</div>`}${rateBadge(m)}</div>
+    <div class="t">${esc(m.title)}</div><div class="s">${esc(sub)}</div></button>`;
+}
+
+function renderTabs() {
+  $('#tabs').innerHTML = Object.keys(GROUPS).map(k => `<button aria-pressed="${k === tab}" data-tab="${k}">${k}</button>`).join('') +
+    `<select class="sort" id="sort" aria-label="排序"><option value="default">默认排序</option><option value="rating"${sortBy === 'rating' ? ' selected' : ''}>按评分</option></select>`;
+}
+
+function renderShelf() {
+  renderTabs();
+  $('#tabs').hidden = false;
+  const rows = GROUPS[tab]().map(([name, list]) => [name, name === '最近入库' || name === '高分' ? list : sorted(list)]);
+  if (rows.length === 1) {
+    const [name, list] = rows[0];
+    $('#view').innerHTML = `<section class="row"><h2>${esc(name)}<span>${list.length} 部</span></h2><div class="grid">${list.map(card).join('')}</div></section>`;
+  } else {
+    $('#view').innerHTML = rows.map(([name, list]) => `<section class="row"><h2>${esc(name)}<span>${list.length} 部</span></h2><div class="strip">${list.map(card).join('')}</div></section>`).join('');
+  }
+  $('#status').textContent = '';
+}
+
+let seq = 0;
+async function runSearch(q) {
+  const my = ++seq;
+  $('#tabs').hidden = true;
+  $('#status').textContent = `搜索「${q}」…`;
+  try {
+    const r = await fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json());
+    if (my !== seq) return;
+    if (r.error) throw new Error(r.error);
+    const list = r.hits.map(h => BY_ID.get(h.id)).filter(Boolean);
+    $('#status').textContent = `「${q}」 ${list.length} 个结果 · ${(r.ms / 1000).toFixed(2)} 秒`;
+    $('#view').innerHTML = list.length ? `<div class="grid">${list.map(card).join('')}</div>` : '<div class="empty">没有找到相关影片</div>';
+  } catch (e) {
+    if (my === seq) $('#status').textContent = '搜索出错：' + e.message;
+  }
+}
+
+function syncFromURL() {
+  const p = new URLSearchParams(location.search);
+  const q = p.get('q') || '';
+  $('#q').value = q;
+  $('#form').classList.toggle('has-q', !!q);
+  if (q) runSearch(q); else { seq++; renderShelf(); }
+  const id = +p.get('m');
+  if (id && BY_ID.has(id)) openDetail(id, false); else closeDetail(false);
+}
+
+function setURL(params, push = true) {
+  const p = new URLSearchParams(location.search);
+  for (const [k, v] of Object.entries(params)) v ? p.set(k, v) : p.delete(k);
+  const url = location.pathname + (p.toString() ? '?' + p : '');
+  push ? history.pushState(null, '', url) : history.replaceState(null, '', url);
+}
+
+function openDetail(id, push = true) {
+  const m = BY_ID.get(id);
+  if (!m) return;
+  const d = $('#detail');
+  const orig = [...new Set([m.originalTitle, m.enTitle])].filter(t => t && t !== m.title);
+  d.innerHTML = `<button class="close" aria-label="关闭">✕</button>
+    <div class="head">
+      ${m.poster ? `<img src="/posters/${m.poster}" alt="">` : '<div class="ph"></div>'}
+      <div><h3>${esc(m.title)}</h3>
+        ${orig.map(t => `<div class="orig">${esc(t)}</div>`).join('')}
+        <div class="meta">${[isKids(m) && '少儿', m.year, m.runtime && m.runtime + ' 分钟', ...m.genres, m.countries.join(' / ')].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('')}${rateBadge(m, true)}</div>
+      </div>
+    </div>
+    <div class="body">
+      ${m.videos?.length ? `<div class="play">
+        <a class="btn" href="${esc(iinaURL(m.videos[0]))}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>用 IINA 播放</a>
+        ${m.videos.length > 1 ? `<div class="alt">${m.videos.map((v, i) => `<a href="${esc(iinaURL(v))}" title="${esc(v.path)}">文件 ${i + 1} · ${fmtSize(v.size)}</a>`).join('')}</div>` : ''}
+      </div>` : ''}
+      <p class="ov">${esc(m.overview) || '<span style="color:var(--muted)">暂无简介</span>'}</p>
+      <dl>
+        <dt>导演</dt><dd>${esc(m.directors.join('、')) || '—'}</dd>
+        <dt>主演</dt><dd>${esc(m.cast.join('、')) || '—'}</dd>
+        <dt>字幕</dt><dd>${m.subLangs.length ? esc(m.subLangs.join('、')) + `<div class="orig" style="font-size:12px">${m.subs.length} 个外挂字幕文件</div>` : '无外挂字幕（可能内封）'}</dd>
+        <dt>NAS</dt><dd>${m.nasPaths.map(p => `<div class="path"><a href="${esc(encodeURI(p))}">${esc(p)}</a><button data-copy="${esc(p)}">复制</button></div>`).join('')}</dd>
+        <dt>TMDB</dt><dd><a style="color:var(--accent)" href="https://www.themoviedb.org/movie/${m.id}?language=zh-CN" target="_blank" rel="noopener">${m.id}</a></dd>
+      </dl>
+    </div>`;
+  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
+  d.scrollTop = 0;
+  d.querySelector('.close').focus({ preventScroll: true });
+  if (push) setURL({ m: id });
+}
+
+function closeDetail(push = true) {
+  const d = $('#detail');
+  if (!d.classList.contains('open')) return;
+  d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open');
+  if (push) setURL({ m: null });
+}
+
+document.addEventListener('click', e => {
+  const c = e.target.closest('.card');
+  if (c) return openDetail(+c.dataset.id);
+  const t = e.target.closest('[data-tab]');
+  if (t) { tab = t.dataset.tab; renderShelf(); window.scrollTo({ top: 0 }); return; }
+  if (e.target.closest('.detail .close') || e.target.id === 'scrim') return closeDetail();
+  const cp = e.target.closest('[data-copy]');
+  if (cp) {
+    const text = cp.dataset.copy;
+    const done = () => { cp.textContent = '已复制'; setTimeout(() => cp.textContent = '复制', 1200); };
+    if (navigator.clipboard && isSecureContext) navigator.clipboard.writeText(text).then(done);
+    else { const ta = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.id !== 'sort') return;
+  sortBy = e.target.value;
+  try { localStorage.setItem('sortBy', sortBy); } catch {}
+  renderShelf();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+});
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = $('#q').value.trim();
+  $('#q').blur();
+  setURL({ q, m: null });
+  syncFromURL();
+});
+$('#q').addEventListener('input', () => $('#form').classList.toggle('has-q', !!$('#q').value));
+$('#clear').addEventListener('click', () => { $('#q').value = ''; setURL({ q: null, m: null }); syncFromURL(); $('#q').focus(); });
+window.addEventListener('popstate', syncFromURL);
+
+fetch('/api/movies').then(r => r.json()).then(list => {
+  MOVIES = list; BY_ID = new Map(list.map(m => [m.id, m]));
+  $('#count').textContent = `${list.length} 部`;
+  syncFromURL();
+});
+</script>
+</body>
+</html>

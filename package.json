@@ -1,0 +1,21 @@
+{
+  "name": "movie-shelf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@node-rs/jieba": "^2.0.4",
+    "@tobilu/qmd": "^2.8.3",
+    "better-sqlite3": "^13.0.3"
+  }
+}

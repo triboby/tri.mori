@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>书架</title>
+<link rel="stylesheet" href="/shelf.css">
+<style>
+.card .poster.book { aspect-ratio: 5 / 7; }
+.rate.douban { background: #2e963d; color: #fff; }
+.detail .meta .rate.douban { background: #2e963d; color: #fff; }
+.prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgb(0 0 0 / .35); }
+.prog i { display: block; height: 100%; background: var(--accent); }
+.card .kind { position: absolute; left: 6px; top: 6px; font-size: 11px; padding: 1px 6px; border-radius: 6px; background: rgb(0 0 0 / .62); color: #fff; }
+.detail .head img.book, .detail .head .ph.book { aspect-ratio: 5 / 7; }
+.files { display: grid; gap: 8px; }
+.file { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; }
+.file .fmt { font-weight: 700; font-size: 12px; background: var(--surface-2); border-radius: 6px; padding: 1px 8px; }
+.file a { color: var(--accent); text-decoration: none; }
+.file .note { color: var(--muted); }
+.file button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 6px; font-size: 12px; padding: 1px 8px; cursor: pointer; }
+.play.readest { display: flex; flex-wrap: wrap; gap: 8px; }
+.play.readest .alt { flex-basis: 100%; }
+.play a.btn.ghost { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.progline { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+.progline .bar2 { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 4px; }
+.progline .bar2 i { display: block; height: 100%; background: var(--accent); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags span { font-size: 12px; background: var(--surface-2); border-radius: 6px; padding: 1px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand" id="brand">书架<small id="count"></small></div>
+    <nav class="kinds" aria-label="类别"><a href="/all" id="k-all">全部</a><a href="/">电影</a><a href="/books" id="k-books">书</a></nav>
+    <form class="search" id="form" role="search" autocomplete="off">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" enterkeyhint="search" placeholder="搜书名、作者、主题…" aria-label="搜索">
+      <button type="button" class="clear" id="clear" aria-label="清除">✕</button>
+    </form>
+  </div>
+</header>
+<main>
+  <div class="status" id="status"></div>
+  <nav class="tabs" id="tabs" aria-label="分组"></nav>
+  <div id="view"></div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside class="detail" id="detail" aria-hidden="true" role="dialog" aria-modal="true"></aside>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MODE = location.pathname === '/all' ? 'all' : 'books';
+let BOOKS = [], BY_ID = new Map(), MOVIES = [], MOVIE_BY_ID = new Map(), tab = '推荐', sortBy = 'default';
+try { sortBy = localStorage.getItem('bookSortBy') || 'default'; } catch {}
+
+const SMB_BASE = 'smb://192.168.50.94/store/book/';
+const fmtSize = b => b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
+/** Readest opens a book by its partial-MD5 hash (same as KOReader's), which is our file id. The https form is
+ *  Readest's universal link (iOS/Android open the app); desktop uses the readest:// scheme. */
+const IOS = /iPhone|iPad/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const MOBILE = IOS || /Android/i.test(navigator.userAgent);
+const readestHref = f => MOBILE ? `https://web.readest.com/o/book/${f.id}` : `readest://book/${f.id}`;
+const READEST_FMT = ['epub', 'azw3', 'mobi', 'pdf', 'fb2', 'cbz', 'txt'];
+const pct = b => b.progress ? Math.round(b.progress.percentage * 100) : null;
+const reading = () => BOOKS.filter(b => b.progress && b.progress.percentage < 0.99).sort((a, b) => b.progress.timestamp - a.progress.timestamp);
+const sorted = list => sortBy === 'rating' ? [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.votes || 0) - (a.votes || 0)) : list;
+
+function rateBadge(b, link = false) {
+  if (!b.rating) return '';
+  const text = `豆瓣 ${b.rating.toFixed(1)}`;
+  return link && b.doubanId ? `<a class="rate douban" href="https://book.douban.com/subject/${b.doubanId}/" target="_blank" rel="noopener">${text}</a>` : `<span class="rate douban">${text}</span>`;
+}
+
+function bookCard(b) {
+  const p = pct(b);
+  return `<button class="card" data-id="${esc(b.id)}" title="${esc(b.title)}">
+    <div class="poster book">${b.cover ? `<img loading="lazy" src="/covers/${esc(b.cover)}" alt="">` : `<div class="noimg">${esc(b.title)}</div>`}${rateBadge(b)}${MODE === 'all' ? '<span class="kind">书</span>' : ''}${p != null ? `<div class="prog"><i style="width:${p}%"></i></div>` : ''}</div>
+    <div class="t">${esc(b.title)}</div><div class="s">${esc(b.authors[0] || b.subcategory || b.category)}</div></button>`;
+}
+
+function movieCard(m) {
+  const r = m.imdbRating ? `IMDb ${m.imdbRating.toFixed(1)}` : m.rating ? `TMDB ${m.rating.toFixed(1)}` : '';
+  return `<a class="card" href="/?m=${m.id}" title="${esc(m.title)}">
+    <div class="poster">${m.poster ? `<img loading="lazy" src="/posters/${m.poster}" alt="">` : `<div class="noimg">${esc(m.title)}</div>`}${r ? `<span class="rate">${r}</span>` : ''}<span class="kind">电影</span></div>
+    <div class="t">${esc(m.title)}</div><div class="s">${esc([m.year, m.directors[0]?.replace(/（.*）/, '')].filter(Boolean).join(' · '))}</div></a>`;
+}
+
+const groupBy = key => {
+  const g = new Map();
+  for (const b of BOOKS) { const k = key(b); (g.get(k) || g.set(k, []).get(k)).push(b); }
+  return [...g].sort((a, b) => b[1].length - a[1].length);
+};
+const byCategory = () => groupBy(b => b.category);
+const bySubcategory = () => {
+  const order = new Map(byCategory().map(([c], i) => [c, i]));
+  return groupBy(b => b.subcategory ? `${b.category} · ${b.subcategory}` : b.category)
+    .sort((a, b) => order.get(a[1][0].category) - order.get(b[1][0].category) || b[1].length - a[1].length);
+};
+
+const GROUPS = MODE === 'all' ? {
+  '推荐': () => [
+    ['在读', reading(), 'book'],
+    ['最近入库的书', BOOKS.slice(0, 24), 'book'],
+    ['最近入库的电影', [...MOVIES].sort((a, b) => b.added - a.added).slice(0, 24), 'movie'],
+    ['豆瓣高分书', BOOKS.filter(b => b.rating >= 8.5).sort((a, b) => b.rating - a.rating), 'book'],
+  ],
+} : {
+  '推荐': () => [
+    ['在读', reading()],
+    ['最近入库', BOOKS.slice(0, 24)],
+    ['豆瓣高分', BOOKS.filter(b => b.rating >= 8.5).sort((a, b) => b.rating - a.rating)],
+    ...byCategory(),
+  ],
+  '按细类': bySubcategory,
+  '全部': () => [['全部', [...BOOKS].sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))]],
+};
+
+function renderTabs() {
+  const keys = Object.keys(GROUPS);
+  $('#tabs').innerHTML = (keys.length > 1 ? keys.map(k => `<button aria-pressed="${k === tab}" data-tab="${k}">${k}</button>`).join('') : '') +
+    `<select class="sort" id="sort" aria-label="排序"><option value="default">默认排序</option><option value="rating"${sortBy === 'rating' ? ' selected' : ''}>按评分</option></select>`;
+}
+
+function renderShelf() {
+  renderTabs();
+  $('#tabs').hidden = false;
+  const rows = GROUPS[tab]().filter(([, list]) => list.length).map(([name, list, kind]) =>
+    [name, ['在读', '最近入库', '最近入库的书', '最近入库的电影', '豆瓣高分', '豆瓣高分书'].includes(name) ? list : sorted(list), kind]);
+  const cards = (list, kind) => list.map(kind === 'movie' ? movieCard : bookCard).join('');
+  const unit = kind => kind === 'movie' ? '部' : '本';
+  if (rows.length === 1) {
+    const [name, list, kind] = rows[0];
+    $('#view').innerHTML = `<section class="row"><h2>${esc(name)}<span>${list.length} ${unit(kind)}</span></h2><div class="grid">${cards(list, kind)}</div></section>`;
+  } else {
+    $('#view').innerHTML = rows.map(([name, list, kind]) => `<section class="row"><h2>${esc(name)}<span>${list.length} ${unit(kind)}</span></h2><div class="strip">${cards(list, kind)}</div></section>`).join('')
+      || '<div class="empty">书架还是空的</div>';
+  }
+  $('#status').textContent = '';
+}
+
+let seq = 0;
+async function runSearch(q) {
+  const my = ++seq;
+  $('#tabs').hidden = true;
+  $('#status').textContent = `搜索「${q}」…`;
+  try {
+    const r = await fetch(`/api/search?kind=${MODE}&q=` + encodeURIComponent(q)).then(r => r.json());
+    if (my !== seq) return;
+    if (r.error) throw new Error(r.error);
+    const html = r.hits.map(h => h.kind === 'movies' ? MOVIE_BY_ID.get(h.id) && movieCard(MOVIE_BY_ID.get(h.id)) : BY_ID.get(h.id) && bookCard(BY_ID.get(h.id))).filter(Boolean);
+    $('#status').textContent = `「${q}」 ${html.length} 个结果 · ${(r.ms / 1000).toFixed(2)} 秒`;
+    $('#view').innerHTML = html.length ? `<div class="grid">${html.join('')}</div>` : '<div class="empty">没有找到相关内容</div>';
+  } catch (e) {
+    if (my === seq) $('#status').textContent = '搜索出错：' + e.message;
+  }
+}
+
+function syncFromURL() {
+  const p = new URLSearchParams(location.search);
+  const q = p.get('q') || '';
+  $('#q').value = q;
+  $('#form').classList.toggle('has-q', !!q);
+  if (q) runSearch(q); else { seq++; renderShelf(); }
+  const id = p.get('b');
+  if (id && BY_ID.has(id)) openDetail(id, false); else closeDetail(false);
+}
+
+function setURL(params, push = true) {
+  const p = new URLSearchParams(location.search);
+  for (const [k, v] of Object.entries(params)) v ? p.set(k, v) : p.delete(k);
+  const url = location.pathname + (p.toString() ? '?' + p : '');
+  push ? history.pushState(null, '', url) : history.replaceState(null, '', url);
+}
+
+function openDetail(id, push = true) {
+  const b = BY_ID.get(id);
+  if (!b) return;
+  const d = $('#detail');
+  const p = pct(b);
+  const orig = [b.subtitle, b.origTitle].filter(Boolean);
+  const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : '';
+  d.innerHTML = `<button class="close" aria-label="关闭">✕</button>
+    <div class="head">
+      ${b.cover ? `<img class="book" src="/covers/${esc(b.cover)}" alt="">` : '<div class="ph book"></div>'}
+      <div><h3>${esc(b.title)}</h3>
+        ${orig.map(t => `<div class="orig">${esc(t)}</div>`).join('')}
+        <div class="meta">${[b.year, b.publisher, b.pages && b.pages + ' 页', [b.category, b.subcategory].filter(Boolean).join(' / ')].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('')}${rateBadge(b, true)}</div>
+      </div>
+    </div>
+    <div class="body">
+      ${p != null ? `<div class="progline">读到 ${p}% · ${esc(b.progress.device || 'KOReader')} · ${new Date(b.progress.timestamp * 1000).toLocaleString('zh-CN')}<div class="bar2"><i style="width:${p}%"></i></div></div>` : ''}
+      ${(() => {
+        const f = b.files.filter(f => READEST_FMT.includes(f.format)).sort((x, y) => READEST_FMT.indexOf(x.format) - READEST_FMT.indexOf(y.format))[0];
+        if (!f) return '';
+        return `<div class="play readest">
+          <a class="btn" href="${esc(readestHref(f))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>在 Readest 中阅读</a>
+        </div>`;
+      })()}
+      <p class="ov">${b.intro ? esc(b.intro).replace(/\n/g, '<br>') : '<span style="color:var(--muted)">暂无简介</span>'}</p>
+      <dl>
+        ${row('作者', esc(b.authors.join('、')) || '—')}
+        ${row('译者', esc(b.translators.join('、')))}
+        ${row('丛书', esc(b.series))}
+        ${row('ISBN', esc(b.isbn))}
+        ${row('中图分类', esc(b.clc))}
+        ${row('标签', b.tags.length ? `<div class="tags">${b.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : '')}
+        <dt>文件</dt><dd><div class="files">${b.files.map(f => `<div class="file">
+          <span class="fmt">${esc(f.format.toUpperCase())}</span><span class="note">${fmtSize(f.size)}${f.textLayer === 'scan' ? ' · 扫描版' : ''}</span>
+          ${READEST_FMT.includes(f.format) ? `<a href="${esc(readestHref(f))}">在 Readest 中阅读</a>` : ''}<button class="copy" data-copy="${esc(SMB_BASE + f.path)}">复制 NAS 路径</button>
+          <div class="note" style="flex-basis:100%;word-break:break-all;font-size:12px">${esc(f.path)}</div></div>`).join('')}</div></dd>
+        ${b.doubanId ? `<dt>豆瓣</dt><dd><a style="color:var(--accent)" href="https://book.douban.com/subject/${b.doubanId}/" target="_blank" rel="noopener">${b.doubanId}</a></dd>` : ''}
+      </dl>
+    </div>`;
+  d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
+  d.scrollTop = 0;
+  d.querySelector('.close').focus({ preventScroll: true });
+  if (push) setURL({ b: id });
+}
+
+function closeDetail(push = true) {
+  const d = $('#detail');
+  if (!d.classList.contains('open')) return;
+  d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open');
+  if (push) setURL({ b: null });
+}
+
+document.addEventListener('click', e => {
+  const c = e.target.closest('button.card');
+  if (c) return openDetail(c.dataset.id);
+  const t = e.target.closest('[data-tab]');
+  if (t) { tab = t.dataset.tab; renderShelf(); window.scrollTo({ top: 0 }); return; }
+  if (e.target.closest('.detail .close') || e.target.id === 'scrim') return closeDetail();
+  const cp = e.target.closest('[data-copy]');
+  if (cp) {
+    const text = cp.dataset.copy, label = cp.textContent;
+    const done = () => { cp.textContent = '已复制'; setTimeout(() => cp.textContent = label, 1200); };
+    if (navigator.clipboard && isSecureContext) navigator.clipboard.writeText(text).then(done);
+    else { const ta = Object.assign(document.createElement('textarea'), { value: text }); document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.id !== 'sort') return;
+  sortBy = e.target.value;
+  try { localStorage.setItem('bookSortBy', sortBy); } catch {}
+  renderShelf();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+});
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = $('#q').value.trim();
+  $('#q').blur();
+  setURL({ q, b: null });
+  syncFromURL();
+});
+$('#q').addEventListener('input', () => $('#form').classList.toggle('has-q', !!$('#q').value));
+$('#clear').addEventListener('click', () => { $('#q').value = ''; setURL({ q: null, b: null }); syncFromURL(); $('#q').focus(); });
+window.addEventListener('popstate', syncFromURL);
+
+$(MODE === 'all' ? '#k-all' : '#k-books').setAttribute('aria-current', 'page');
+if (MODE === 'all') {
+  document.title = '书影架';
+  $('#brand').firstChild.textContent = '书影架';
+  $('#q').placeholder = '同时搜电影和书…';
+}
+Promise.all([fetch('/api/books').then(r => r.json()), MODE === 'all' ? fetch('/api/movies').then(r => r.json()) : []]).then(([books, movies]) => {
+  BOOKS = books; BY_ID = new Map(books.map(b => [b.id, b]));
+  MOVIES = movies; MOVIE_BY_ID = new Map(movies.map(m => [m.id, m]));
+  $('#count').textContent = MODE === 'all' ? `${movies.length} 部 · ${books.length} 本` : `${books.length} 本`;
+  syncFromURL();
+});
+</script>
+</body>
+</html>

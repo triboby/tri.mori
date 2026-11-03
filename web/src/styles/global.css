@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Design v3 palette and type (system fonts only; nothing is fetched from the internet). */
+@theme {
+  --color-ink: #0b0d12;
+  --color-panel: #11151c;
+  --color-line: #1f2430;
+  --color-rule: #1c212b;
+  --color-chip: #151922;
+  --color-raise: #1b2029;
+  --color-edge: #262c38;
+  --color-edge-2: #333a47;
+  --color-edge-3: #3a4150;
+  --color-nav: #0f1218;
+  --color-text: #e9e6df;
+  --color-soft: #d6d1c6;
+  --color-muted: #a3aab5;
+  --color-accent: #f0b44c;
+  --color-accent-hi: #ffd27f;
+  --color-accent-ink: #1a1405;
+  --color-accent-bg: #2b2615;
+  --color-kids: #7cc7a8;
+  --color-cyan: #7fd0dc;
+  --color-cyan-bg: #15272b;
+  --color-ok: #8fcf7a;
+  --color-ok-bg: #1d2e19;
+  --color-warn: #f2a08c;
+  --color-warn-bg: #3a1e18;
+  --color-info: #9fc0f0;
+  --color-info-bg: #1b2230;
+  --color-bar: #5a6478;
+
+  --font-sans: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-mono: "SF Mono", "JetBrains Mono", Menlo, ui-monospace, monospace;
+}
+
+@layer base {
+  html { color-scheme: dark; -webkit-text-size-adjust: 100%; }
+  body { @apply bg-ink text-text font-sans text-[15px] leading-relaxed antialiased; }
+  a { @apply text-accent hover:text-accent-hi; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  ::selection { background: var(--color-accent); color: var(--color-accent-ink); }
+}
+
+@utility btn {
+  @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-edge-3 bg-raise px-3.5 text-sm text-text no-underline hover:border-accent hover:text-text disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-edge-3;
+}
+@utility btn-pri {
+  @apply btn border-accent bg-accent font-bold text-accent-ink hover:bg-accent-hi hover:text-accent-ink;
+}
+@utility chip {
+  @apply min-h-11 cursor-pointer rounded-[10px] border border-edge-2 bg-chip px-4 text-[15px] text-text;
+  &[aria-pressed="true"] { @apply border-accent bg-accent-bg text-accent; }
+}
+@utility card-panel {
+  @apply rounded-xl border border-line bg-panel;
+}
+@utility strip {
+  @apply grid grid-flow-col gap-4 overflow-x-auto pb-2;
+  scrollbar-width: thin;
+}
+@utility pending {
+  @apply rounded border border-dashed border-edge-3 px-1.5 font-mono text-[11px] text-muted;
+}
+
+@utility skel {
+  @apply rounded-md;
+  background: linear-gradient(90deg, var(--color-raise) 25%, var(--color-edge) 50%, var(--color-raise) 75%) 0 0 / 300% 100%;
+  animation: skel-shimmer 1.6s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) { animation: none; background: var(--color-raise); }
+}
+@keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

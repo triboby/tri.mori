@@ -1,0 +1,7 @@
+---
+import Shell from '../layouts/Shell.astro';
+import PickApp from '../components/PickApp.tsx';
+---
+<Shell title="选片 · 森记 Mori" active="pick" searchAction="/">
+  <PickApp client:load />
+</Shell>

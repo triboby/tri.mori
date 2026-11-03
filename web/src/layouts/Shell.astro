@@ -1,0 +1,56 @@
+---
+// Page frame: top bar (brand, sections, search) on wide screens, bottom tab bar on phones.
+import '../styles/global.css';
+
+interface Props { title: string; active: 'home' | 'pick' | 'books' | 'fill' | 'health' | 'movie'; searchAction?: string; searchPlaceholder?: string }
+const { title, active, searchAction = '/', searchPlaceholder = '搜片名、导演、剧情，或者直接说：两个人、一个半小时、轻松点' } = Astro.props;
+const nav = [
+  ['home', '/', '片库'], ['pick', '/pick', '选片'], ['books', '/books', '书架'], ['fill', '/fill', '补片'], ['health', '/health', '体检'],
+] as const;
+const tabs = [
+  ['home', '/', '片库', 'M4 5h16v14H4zM9 5v14M4 10h5M4 15h5'], ['pick', '/pick', '选片', 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6'],
+  ['books', '/books', '书', 'M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2zM22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z'], ['health', '/health', '体检', 'M3 12h4l3-7 4 14 3-7h4'],
+] as const;
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d12">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <title>{title}</title>
+</head>
+<body class="min-h-dvh pb-[calc(64px+env(safe-area-inset-bottom))] md:pb-0">
+  <header class="sticky top-0 z-30 border-b border-rule bg-ink/95 backdrop-blur">
+    <div class="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3 md:px-8 md:py-4">
+      <a href="/" class="whitespace-nowrap font-serif text-[20px] font-black text-text no-underline hover:text-text">森<span class="text-accent">记</span> <span class="font-sans text-[13px] font-medium text-muted">Mori</span></a>
+      <nav aria-label="页面" class="hidden gap-0.5 rounded-[10px] bg-chip p-[3px] md:flex">
+        {nav.map(([key, href, label]) => (
+          <a href={href} aria-current={active === key ? 'page' : undefined}
+            class:list={['rounded-lg px-3.5 py-2 text-sm no-underline', active === key ? 'bg-edge text-text' : 'text-muted hover:text-text']}>{label}</a>
+        ))}
+      </nav>
+      <form action={searchAction} method="get" role="search" class="order-last flex min-h-11 w-full flex-1 basis-full items-center gap-2.5 rounded-[10px] border border-edge bg-chip px-3.5 md:order-none md:basis-80">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="shrink-0 text-muted"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="site-q" name="q" type="search" enterkeyhint="search" autocomplete="off" aria-label="搜索" placeholder={searchPlaceholder}
+          class="min-w-0 flex-1 bg-transparent text-text outline-none placeholder:text-muted/80 [&::-webkit-search-cancel-button]:invert" />
+      </form>
+    </div>
+  </header>
+  <slot />
+  <nav aria-label="主导航" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-rule bg-nav pb-[env(safe-area-inset-bottom)] md:hidden">
+    {tabs.map(([key, href, label, d]) => (
+      <a href={href} aria-current={active === key ? 'page' : undefined}
+        class:list={['flex min-h-[52px] flex-col items-center justify-center gap-0.5 text-[11px] no-underline', active === key ? 'text-accent' : 'text-muted hover:text-text']}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={d}></path></svg>
+        {label}
+      </a>
+    ))}
+  </nav>
+  <script is:inline>
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) document.getElementById('site-q').value = q;
+  </script>
+</body>
+</html>

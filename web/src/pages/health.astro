@@ -1,0 +1,7 @@
+---
+import Shell from '../layouts/Shell.astro';
+import HealthApp from '../components/HealthApp.tsx';
+---
+<Shell title="片库体检 · 森记 Mori" active="health" searchAction="/">
+  <HealthApp client:load />
+</Shell>

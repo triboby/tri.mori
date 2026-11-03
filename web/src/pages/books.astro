@@ -1,0 +1,7 @@
+---
+import Shell from '../layouts/Shell.astro';
+import BooksApp from '../components/BooksApp.tsx';
+---
+<Shell title="书架 · 森记 Mori" active="books" searchAction="/books" searchPlaceholder="搜书名、作者、主题…">
+  <BooksApp client:load />
+</Shell>

@@ -1,0 +1,7 @@
+---
+import Shell from '../layouts/Shell.astro';
+import MovieDetail from '../components/MovieDetail.tsx';
+---
+<Shell title="影片详情 · 森记 Mori" active="movie" searchAction="/">
+  <MovieDetail client:load />
+</Shell>

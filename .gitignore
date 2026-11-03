@@ -1,0 +1,34 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+web/.astro/
+
+# Build output (go/webdist is produced by `npm run build` in web/ and embedded into the binary)
+go/bin/
+go/webdist/
+
+# Runtime data and caches (personal library, kosync database)
+data/
+cache/
+logs/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Generated library documents and reports
+docs/
+docs-books/
+unmatched.md
+unmatched-books.md
+book-reorg-plan.md
+book-recategorize-plan.md
+*.sample.json
+
+# Local launchd definitions (not used)
+*.plist
+
+.DS_Store
